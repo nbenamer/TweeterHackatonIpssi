@@ -1,0 +1,102 @@
+classDiagram
+    class User {
+      +String id
+      +String username
+      +String bio
+      +String age
+      +String interest
+    }
+    
+    class Tweet {
+      +String id
+      +String content
+      +DateTime timestamp
+    }
+    
+    class Like {
+      +String id
+      +DateTime timestamp
+    }
+    
+    class Retweet {
+      +String id
+      +String comment
+      +DateTime timestamp
+    }
+    
+    class Reply {
+      +String id
+      +String content
+      +DateTime timestamp
+    }
+    
+    class Bookmark {
+      +String id
+      +DateTime timestamp
+    }
+
+    class Media {
+      +String id
+      +String url
+      +String type
+    }
+    
+    class Hashtag {
+      +String id
+      +String tag
+    }
+    
+    class Mention {
+      +String id
+      +String username
+    }
+    
+    class Follow {
+      +String id
+      +String followerId
+      +String followingId
+    }
+
+    class Feed {
+      +String id
+      +String userId
+      +List<Tweet> tweets
+      +DateTime lastUpdated
+    }
+
+    class Notification {
+      +String id
+      +String userId
+      +String type
+      +String relatedId
+      +Boolean isRead
+      +DateTime timestamp
+    }
+
+    class SearchHistory {
+      +String id
+      +String userId
+      +String query
+      +DateTime timestamp
+    }
+
+    User "1" --> "*" Tweet : crée
+    Tweet "*" --> "*" Media : contient
+    Tweet "*" --> "*" Hashtag : tagué
+    Tweet "*" --> "*" Mention : mentionne    
+    User "1" --> "*" Tweet : crée
+    User "1" --> "*" Like : aime
+    Tweet "1" <-- "*" Like : aiméPar
+    User "1" --> "*" Retweet : retweete
+    Tweet "1" <-- "*" Retweet : retweetéDe
+    User "1" --> "*" Reply : répond
+    Tweet "1" <-- "*" Reply : réponseDe
+    User "1" --> "*" Bookmark : sauvegarde
+    Tweet "1" <-- "*" Bookmark : marquéPar
+    User "1" --> "*" Follow : suit
+    Follow "1" --> "1" User : suiviPar
+    User "1" --> "1" Feed : possède
+    Feed "1" --> "*" Tweet : contient
+    User "1" --> "*" Notification : reçoit
+    Notification "1" --> "1" Tweet : liéÀ
+    User "1" --> "*" SearchHistory : effectue
