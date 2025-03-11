@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
 
 const PostTweet = ({ onPost }) => {
-  const [tweetContent, setTweetContent] = useState('');
+  const [content, setContent] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!tweetContent.trim()) return;
-    onPost(tweetContent);
-    setTweetContent('');
+    if (content.trim()) {
+      onPost(content);
+      setContent('');
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
       <textarea
-        className="w-full p-2 border border-gray-300 rounded mb-2 text-black"
-        value={tweetContent}
-        onChange={(e) => setTweetContent(e.target.value)}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
         placeholder="What's happening?"
+        className="w-full p-2 border rounded"
       />
-      <button
-        type="submit"
-        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-      >
+      <button type="submit" className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
         Tweet
       </button>
     </form>

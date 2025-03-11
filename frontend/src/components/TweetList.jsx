@@ -1,12 +1,22 @@
 import React from 'react';
-import Tweet from './Tweet';
 
 const TweetList = ({ tweets }) => {
+  console.log("Tweets reçus :", tweets); // Vérifiez les données reçues
+
   return (
-    <div className="space-y-4">
-      {tweets.map((tweet, index) => (
-        <Tweet key={index} username={tweet.username} content={tweet.content} date={tweet.date} />
-      ))}
+    <div>
+      {tweets.map((tweet, index) => {
+        console.log("Tweet individuel :", tweet); // Vérifiez chaque tweet
+        return (
+          <div key={index} className="border p-4 mb-4">
+            <p className="font-bold" style={{ color: 'black' }}>{tweet.username}</p>
+            <p>{tweet.content}</p>
+            <p className="text-sm text-gray-500">
+              {new Date(tweet.date).toLocaleString()}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 };

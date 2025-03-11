@@ -6,7 +6,7 @@ import connectMongoDB from "./config/db.js";
 dotenv.config();
 
 const app = express();
-const PORT = 5001
+const PORT = 5000
 
 connectMongoDB().then(() => {
   app.listen(PORT, () => {

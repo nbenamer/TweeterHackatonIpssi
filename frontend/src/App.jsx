@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import Navbar from './components/Navbar'; // Importez Navbar depuis son fichier spécifique
-import Sidebar from './components/Sidebar'; // Importez Sidebar depuis son fichier spécifique
-import TweetList from './components/TweetList'; // Importez TweetList depuis son fichier spécifique
-import PostTweet from './components/PostTweet'; // Importez PostTweet depuis son fichier spécifique
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
+import TweetList from './components/TweetList';
+import PostTweet from './components/PostTweet';
+import Explore from './pages/Explore';
+import Notifications from './pages/Notifications';
+import Messages from './pages/Messages';
+import Bookmarks from './pages/Bookmarks';
+import Profile from './pages/Profile';
+import More from './pages/More';
+
 const App = () => {
   const [tweets, setTweets] = useState([]);
 
@@ -10,22 +18,39 @@ const App = () => {
     const newTweet = {
       username: 'YourUsername',
       content,
-      date: new Date().toLocaleDateString(),
+      date: new Date().toISOString(),
     };
     setTweets([newTweet, ...tweets]);
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 p-4">
-          <PostTweet onPost={handlePostTweet} />
-          <TweetList tweets={tweets} />
+    <Router>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex flex-1">
+          <Sidebar />
+          <div className="flex-1 p-4">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <>
+                    <PostTweet onPost={handlePostTweet} />
+                    <TweetList tweets={tweets} setTweets={setTweets} />
+                  </>
+                }
+              />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/bookmarks" element={<Bookmarks />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/more" element={<More />} />
+            </Routes>
+          </div>
         </div>
       </div>
-    </div>
+    </Router>
   );
 };
 
