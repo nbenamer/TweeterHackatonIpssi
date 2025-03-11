@@ -1,35 +1,32 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import Navbar from './components/Navbar'; // Importez Navbar depuis son fichier spécifique
+import Sidebar from './components/Sidebar'; // Importez Sidebar depuis son fichier spécifique
+import TweetList from './components/TweetList'; // Importez TweetList depuis son fichier spécifique
+import PostTweet from './components/PostTweet'; // Importez PostTweet depuis son fichier spécifique
+const App = () => {
+  const [tweets, setTweets] = useState([]);
 
-function App() {
-  const [count, setCount] = useState(0)
+  const handlePostTweet = (content) => {
+    const newTweet = {
+      username: 'YourUsername',
+      content,
+      date: new Date().toLocaleDateString(),
+    };
+    setTweets([newTweet, ...tweets]);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <div className="flex flex-1">
+        <Sidebar />
+        <div className="flex-1 p-4">
+          <PostTweet onPost={handlePostTweet} />
+          <TweetList tweets={tweets} />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    </div>
+  );
+};
 
-export default App
+export default App;
