@@ -3,7 +3,7 @@ import PostSkeleton from "../skeleton/PostSkeleton"
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-const Posts = ({ feedType, username, userId, posts: postsProp }) => {
+const Posts = ({ feedType, username, userId }) => {
 	const getPostEndpoint = () => {
 		switch (feedType) {
 			case "forYou":
@@ -22,12 +22,12 @@ const Posts = ({ feedType, username, userId, posts: postsProp }) => {
 	const POST_ENDPOINT = getPostEndpoint();
 
 	const {
-		data: fetchedPosts,
+		data: posts,
 		isLoading,
 		refetch,
 		isRefetching,
 	} = useQuery({
-		queryKey: ["posts", feedType, username, userId],
+		queryKey: ["posts"],
 		queryFn: async () => {
 			try {
 				const res = await fetch(POST_ENDPOINT);
@@ -42,17 +42,11 @@ const Posts = ({ feedType, username, userId, posts: postsProp }) => {
 				throw new Error(error);
 			}
 		},
-		enabled: !postsProp, // Disable fetching if posts are passed as a prop
 	});
 
 	useEffect(() => {
-		if (!postsProp) {
-			refetch();
-		}
-	}, [feedType, refetch, username, postsProp]);
-
-	// Use postsProp if available, otherwise use fetchedPosts
-	const posts = postsProp || fetchedPosts;
+		refetch();
+	}, [feedType, refetch, username]);
 
 	return (
 		<>
@@ -76,5 +70,4 @@ const Posts = ({ feedType, username, userId, posts: postsProp }) => {
 		</>
 	);
 };
-
 export default Posts;

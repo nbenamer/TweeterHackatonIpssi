@@ -7,7 +7,7 @@ import authRoutes from "./routes/auth.route.js";
 import userRoutes from './routes/user.route.js';
 import connectMongoDB from './config/db.js';
 import cloudinary from 'cloudinary';
-
+import postRoutes from './routes/post.route.js';
 dotenv.config();
 
 
@@ -33,6 +33,8 @@ app.use(cors());
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notifications", userRoutes);
+app.use("/api/posts", postRoutes);
+
 
 
 if (process.env.NODE_ENV === "production") {

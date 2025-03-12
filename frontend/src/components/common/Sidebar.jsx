@@ -37,7 +37,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className='w-64 h-screen p-4 border-r border-gray-200 ml'>
+    <div className='w-70 h-screen p-4 border-r border-gray-700 ml'>
       <div className='flex justify-center mb-4'>
         <img src={logo} width={100} alt='Logo' />
       </div>
@@ -55,9 +55,13 @@ const Sidebar = () => {
         ))}
       </ul>
       {authUser && (
-        <div className='mt-auto mb-4 flex items-center p-3 rounded-lg transition duration-300 hover:bg-gray-300 cursor-pointer' onClick={logout}>
-          <BiLogOut className='w-6 h-6 text-yellow-500' />
-          <span className='hidden md:block'>Logout</span>
+        <div
+        style={{marginLeft:-10}}
+          className=' mt-auto mb-4 flex items-center gap-3 p-3 text-lg font-medium text-gray-100 rounded-lg transition duration-300 hover:bg-gray-500 cursor-pointer hover:font-bold'
+          onClick={logout}
+        >
+          <BiLogOut className='w-8 h-8 text-yellow-800' />
+          <span className='hidden md:block text-gray-100'>Logout</span>
         </div>
       )}
     </div>

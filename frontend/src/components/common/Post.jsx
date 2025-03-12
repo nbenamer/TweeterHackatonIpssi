@@ -60,6 +60,7 @@ const Post = ({ post }) => {
 			}
 		},
 		onSuccess: (updatedLikes) => {
+			// this is not the best UX, bc it will refetch all posts
 			// queryClient.invalidateQueries({ queryKey: ["posts"] });
 
 			// instead, update the cache directly for that post
@@ -228,15 +229,15 @@ const Post = ({ post }) => {
 							<div className='flex gap-1 items-center group cursor-pointer' onClick={handleLikePost}>
 								{isLiking && <LoadingSpinner size='sm' />}
 								{!isLiked && !isLiking && (
-									<FaRegHeart className='w-4 h-4 cursor-pointer text-slate-500 group-hover:text-pink-500' />
+									<FaRegHeart className='w-4 h-4 cursor-pointer text-slate-500 group-hover:text-yellow-500' />
 								)}
 								{isLiked && !isLiking && (
-									<FaRegHeart className='w-4 h-4 cursor-pointer text-pink-500 ' />
+									<FaRegHeart className='w-4 h-4 cursor-pointer text-yellow-500 ' />
 								)}
 
 								<span
-									className={`text-sm  group-hover:text-pink-500 ${
-										isLiked ? "text-pink-500" : "text-slate-500"
+									className={`text-sm  group-hover:text-yellow-500 ${
+										isLiked ? "text-yellow-500" : "text-slate-500"
 									}`}
 								>
 									{post.likes.length}
