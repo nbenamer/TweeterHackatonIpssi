@@ -1,5 +1,6 @@
 import User from "../models/User.js";
-import cloudinary from 'cloudinary'
+import cloudinary from 'cloudinary';
+import Notification from "../models/Notification.js"
 
 export const getUserProfile = async (req, res) => {
 	const { username } = req.params;
