@@ -20,7 +20,7 @@ cloudinary.config({
 });
 
 const app = express();
-const PORT = 5000;
+const PORT = 5001;
 const __dirname = path.resolve();
 
 app.use(express.json({ limit: "5mb" })); // to parse req.body
