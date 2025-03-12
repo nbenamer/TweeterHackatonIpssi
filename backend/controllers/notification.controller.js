@@ -1,4 +1,4 @@
-import Notification from "../models/Notifications.js";
+import Notification from "mongoose/TweeterHackatonIpssi/backend/models/Notification.js";
 
 export const getNotifications = async (req, res) => {
     try {
