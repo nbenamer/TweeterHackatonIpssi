@@ -31,6 +31,7 @@ const SignUpPage = () => {
 			body: JSON.stringify({ email, username, fullName, password }),
 			});
 		
+			console.log("Response :",res)
 			// Check if response is empty
 			const text = await res.text();
 			if (!text) {

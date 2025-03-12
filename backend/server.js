@@ -2,12 +2,11 @@ import path from "path";
 import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import { v2 as cloudinary } from "cloudinary";
 import cors from "cors"; 
 import authRoutes from "./routes/auth.route.js";
-import userRoutes from './routes/user.route.js'
-
-import connectMongoDB from './config/db.js'
+import userRoutes from './routes/user.route.js';
+import connectMongoDB from './config/db.js';
+import cloudinary from 'cloudinary';
 
 dotenv.config();
 
@@ -20,7 +19,7 @@ cloudinary.config({
 });
 
 const app = express();
-const PORT = 5001;
+const PORT = 5000;
 const __dirname = path.resolve();
 
 app.use(express.json({ limit: "5mb" })); // to parse req.body
