@@ -14,6 +14,10 @@ const Posts = ({ feedType, username, userId }) => {
 				return `/api/posts/user/${username}`;
 			case "likes":
 				return `/api/posts/likes/${userId}`;
+			case "bookmarks":
+				return "/api/posts/bookmarks";
+			case "reposts":
+				return `/api/posts/reposts/${userId}`;
 			default:
 				return "/api/posts/all";
 		}
@@ -27,7 +31,15 @@ const Posts = ({ feedType, username, userId }) => {
 		refetch,
 		isRefetching,
 	} = useQuery({
-		queryKey: ["posts"],
+		queryKey: feedType === "bookmarks" 
+			? ["bookmarkedPosts"] 
+			: feedType === "reposts" 
+				? ["repostedPosts"] 
+				: feedType === "likes"
+					? ["likedPosts"]
+					: feedType === "posts"
+						? ["userPosts"]
+						: ["posts"],
 		queryFn: async () => {
 			try {
 				const res = await fetch(POST_ENDPOINT);
@@ -43,6 +55,13 @@ const Posts = ({ feedType, username, userId }) => {
 			}
 		},
 	});
+	
+	useEffect(() => {
+		if (feedType === "reposts" && posts && !isLoading && !isRefetching) {
+			console.log("Reposted posts data:", posts);
+		}
+	}, [feedType, posts, isLoading, isRefetching]);
+
 
 	useEffect(() => {
 		refetch();
@@ -58,7 +77,15 @@ const Posts = ({ feedType, username, userId }) => {
 				</div>
 			)}
 			{!isLoading && !isRefetching && posts?.length === 0 && (
-				<p className='text-center my-4'>No posts in this tab. Switch 👻</p>
+				<p className='text-center my-4'>
+					{feedType === "bookmarks" 
+						? "No bookmarked posts yet. Save posts to read later!" 
+						: feedType === "repost"
+							? "No reposted posts yet. Repost content to share with your followers!"
+							: feedType === "likes"
+								? "No liked posts yet. Heart posts you enjoy!"
+								: "No posts in this tab. Switch 👻"}
+				</p>
 			)}
 			{!isLoading && !isRefetching && posts && (
 				<div>

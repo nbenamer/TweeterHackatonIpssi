@@ -203,25 +203,34 @@ const ProfilePage = () => {
 								</div>
 							</div>
 							<div className='flex w-full border-b border-gray-700 mt-4'>
-								<div
-									className='flex justify-center flex-1 p-3 hover:color-secondary transition duration-300 relative cursor-pointer'
-									onClick={() => setFeedType("posts")}
-								>
-									Posts
-									{feedType === "posts" && (
-										<div className='absolute bottom-0 w-10 h-1 rounded-full bg-yellow-500' />
-									)}
-								</div>
-								<div
-									className='flex justify-center flex-1 p-3  hover:color-primary transition duration-300 relative cursor-pointer'
-									onClick={() => setFeedType("likes")}
-								>
-									Likes
-									{feedType === "likes" && (
-										<div className='absolute bottom-0 w-10  h-1 rounded-full bg-yellow-500' />
-									)}
-								</div>
-							</div>
+    <div
+        className='flex justify-center flex-1 p-3 hover:color-secondary transition duration-300 relative cursor-pointer'
+        onClick={() => setFeedType("posts")}
+    >
+        Posts
+        {feedType === "posts" && (
+            <div className='absolute bottom-0 w-10 h-1 rounded-full bg-yellow-500' />
+        )}
+    </div>
+    <div
+        className='flex justify-center flex-1 p-3 hover:color-secondary transition duration-300 relative cursor-pointer'
+        onClick={() => setFeedType("reposts")}
+    >
+        Reposts
+        {feedType === "reposts" && (
+            <div className='absolute bottom-0 w-10 h-1 rounded-full bg-yellow-500' />
+        )}
+    </div>
+    <div
+        className='flex justify-center flex-1 p-3 hover:color-primary transition duration-300 relative cursor-pointer'
+        onClick={() => setFeedType("likes")}
+    >
+        Likes
+        {feedType === "likes" && (
+            <div className='absolute bottom-0 w-10 h-1 rounded-full bg-yellow-500' />
+        )}
+    </div>
+</div>
 						</>
 					)}
 

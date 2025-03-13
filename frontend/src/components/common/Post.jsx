@@ -1,7 +1,8 @@
 import { FaRegComment } from "react-icons/fa";
 import { BiRepost } from "react-icons/bi";
+import { FaRetweet } from "react-icons/fa"; // For filled repost icon
 import { FaRegHeart } from "react-icons/fa";
-import { FaRegBookmark } from "react-icons/fa6";
+import { FaRegBookmark, FaBookmark } from "react-icons/fa6";
 import { FaTrash } from "react-icons/fa";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -17,6 +18,8 @@ const Post = ({ post }) => {
 	const queryClient = useQueryClient();
 	const postOwner = post.user;
 	const isLiked = post.likes.includes(authUser._id);
+	const isBookmarked = post.bookmarks?.includes(authUser._id);
+	const isReposted = post.reposts?.includes(authUser._id);
 
 	const isMyPost = authUser._id === post.user._id;
 
@@ -62,7 +65,7 @@ const Post = ({ post }) => {
 		onSuccess: (updatedLikes) => {
 			// this is not the best UX, bc it will refetch all posts
 			// queryClient.invalidateQueries({ queryKey: ["posts"] });
-
+	
 			// instead, update the cache directly for that post
 			queryClient.setQueryData(["posts"], (oldData) => {
 				return oldData.map((p) => {
@@ -72,6 +75,83 @@ const Post = ({ post }) => {
 					return p;
 				});
 			});
+			
+			// Ajoutez cette ligne pour invalider la requête des likes
+			queryClient.invalidateQueries({ queryKey: ["likedPosts"] });
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
+
+	const { mutate: bookmarkPost, isPending: isBookmarking } = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch(`/api/posts/bookmark/${post._id}`, {
+					method: "POST",
+				});
+				const data = await res.json();
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong");
+				}
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},
+		onSuccess: (updatedBookmarks) => {
+			// Update the cache directly for that post
+			queryClient.setQueryData(["posts"], (oldData) => {
+				return oldData?.map((p) => {
+					if (p._id === post._id) {
+						return { ...p, bookmarks: updatedBookmarks };
+					}
+					return p;
+				});
+			});
+			
+			// Also invalidate any bookmarked posts queries if they exist
+			queryClient.invalidateQueries({ queryKey: ["bookmarkedPosts"] });
+			
+			toast.success(isBookmarked ? "Removed from bookmarks" : "Added to bookmarks");
+		},
+		onError: (error) => {
+			toast.error(error.message);
+		},
+	});
+
+	const { mutate: repostPost, isPending: isReposting } = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch(`/api/posts/repost/${post._id}`, {
+					method: "POST",
+				});
+				const data = await res.json();
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong");
+				}
+				return data;
+			} catch (error) {
+				throw new Error(error);
+			}
+		},
+		onSuccess: (updatedReposts) => {
+			// Update the cache directly for that post
+			queryClient.setQueryData(["posts"], (oldData) => {
+				return oldData?.map((p) => {
+					if (p._id === post._id) {
+						return { ...p, reposts: updatedReposts };
+					}
+					return p;
+				});
+			});
+			
+			queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+			queryClient.invalidateQueries({ queryKey: ["feedPosts"] });
+			
+			queryClient.invalidateQueries({ queryKey: ["repostedPosts"] });
+			
+			toast.success(isReposted ? "Removed repost" : "Reposted successfully");
 		},
 		onError: (error) => {
 			toast.error(error.message);
@@ -121,6 +201,16 @@ const Post = ({ post }) => {
 	const handleLikePost = () => {
 		if (isLiking) return;
 		likePost();
+	};
+	
+	const handleBookmarkPost = () => {
+		if (isBookmarking) return;
+		bookmarkPost();
+	};
+  
+	const handleRepostPost = () => {
+		if (isReposting) return;
+		repostPost();
 	};
 
 	return (
@@ -213,7 +303,7 @@ const Post = ({ post }) => {
 											value={comment}
 											onChange={(e) => setComment(e.target.value)}
 										/>
-										<button className='btn btn-primary rounded-full btn-sm text-white px-4'>
+										<button className='btn btn-primary rounded-full btn-sm text-white px-4' style={{backgroundColor:'#05afdf',borderColor:'#05afdf'}}>
 											{isCommenting ? <LoadingSpinner size='md' /> : "Post"}
 										</button>
 									</form>
@@ -222,9 +312,21 @@ const Post = ({ post }) => {
 									<button className='outline-none'>close</button>
 								</form>
 							</dialog>
-							<div className='flex gap-1 items-center group cursor-pointer'>
-								<BiRepost className='w-6 h-6  text-slate-500 group-hover:text-green-500' />
-								<span className='text-sm text-slate-500 group-hover:text-green-500'>0</span>
+							<div className='flex gap-1 items-center group cursor-pointer' onClick={handleRepostPost}>
+								{isReposting && <LoadingSpinner size='sm' />}
+								{!isReposted && !isReposting && (
+									<BiRepost className='w-6 h-6 text-slate-500 group-hover:text-green-500' />
+								)}
+								{isReposted && !isReposting && (
+									<FaRetweet className='w-5 h-5 text-green-500' />
+								)}
+								<span 
+									className={`text-sm group-hover:text-green-500 ${
+										isReposted ? "text-green-500" : "text-slate-500"
+									}`}
+								>
+									{post.reposts?.length || 0}
+								</span>
 							</div>
 							<div className='flex gap-1 items-center group cursor-pointer' onClick={handleLikePost}>
 								{isLiking && <LoadingSpinner size='sm' />}
@@ -245,7 +347,15 @@ const Post = ({ post }) => {
 							</div>
 						</div>
 						<div className='flex w-1/3 justify-end gap-2 items-center'>
-							<FaRegBookmark className='w-4 h-4 text-slate-500 cursor-pointer' />
+							<div className='group cursor-pointer' onClick={handleBookmarkPost}>
+								{isBookmarking && <LoadingSpinner size='sm' />}
+								{!isBookmarked && !isBookmarking && (
+									<FaRegBookmark className='w-4 h-4 text-slate-500 group-hover:text-yellow-500' />
+								)}
+								{isBookmarked && !isBookmarking && (
+									<FaBookmark className='w-4 h-4 text-yellow-500' />
+								)}
+							</div>
 						</div>
 					</div>
 				</div>
