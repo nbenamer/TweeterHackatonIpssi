@@ -98,7 +98,7 @@ const findTrendingHashtags = async () => {
         
         // Extract all hashtags
         const allHashtags = [];
-        const hashtagRegex = /#[a-zA-Z0-9_]+/g;
+        const hashtagRegex = /#[\p{L}0-9_]+/gu;
         
         recentPosts.forEach(post => {
             if (post.text) {
@@ -158,7 +158,7 @@ export const searchHashtags = async (req, res) => {
         
         // Extract all hashtags
         const allHashtags = [];
-        const hashtagRegex = /#[a-zA-Z0-9_]+/g;
+        const hashtagRegex = /#[\p{L}0-9_]+/gu;
         
         recentPosts.forEach(post => {
             if (post.text) {
