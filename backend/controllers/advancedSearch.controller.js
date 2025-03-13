@@ -10,9 +10,12 @@ export const searchByKeyword = async (req, res) => {
             return res.status(400).json({ error: "Keyword parameter is required" });
         }
 
-        // Rechercher les posts contenant le mot-clé dans le texte
+        // Recherche des posts contenant le mot-clé exact ou le hashtag correspondant
         const posts = await Post.find({
-            text: { $regex: keyword, $options: 'i' } // Recherche insensible à la casse
+            $or: [
+                { text: { $regex: keyword, $options: 'i' } },
+                { text: { $regex: keyword, $options: 'i' } } 
+            ]
         })
         .populate({
             path: "user",
@@ -30,7 +33,6 @@ export const searchByKeyword = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
-
 export const advancedSearch = async (req, res) => {
     try {
         const { 
