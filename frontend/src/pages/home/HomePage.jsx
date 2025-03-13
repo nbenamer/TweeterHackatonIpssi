@@ -99,7 +99,7 @@ const HomePage = () => {
 				);
 			}
 		} catch (error) {
-			console.error("Erreur lors de la récupération des hashtags:", error);
+			console.error("Erreur lors de la récupération des hashtags:", error.message);
 		}
 	};
 
@@ -128,7 +128,7 @@ const HomePage = () => {
 			}
 			
 			const queryString = queryParams.join('&');
-			const response = await fetch(`http://localhost:5000/api/posts/search?${queryString}`);
+			const response = await fetch(`http://localhost:3000/api/posts/search?${queryString}`);
 			
 			// Check if response is OK before processing
 			if (!response.ok) {
@@ -309,6 +309,7 @@ const HomePage = () => {
 						)}
 						{activeSearch.keywords && <span> for "{activeSearch.keywords}"</span>}
 						{activeSearch.isDateRangeActive && <span> in advanced search</span>}
+						
 					</div>
 				)}
 				{/* Hashtags populaires */}
@@ -327,12 +328,12 @@ const HomePage = () => {
 												? "bg-blue-500 text-white"
 												: "bg-gray-700 text-white hover:bg-primary"
 											}`}
-										onClick={() => {
-											setSearchKeyword(cleanHashtag);
-											setSelectedHashtag(cleanHashtag);
-											// Auto-search when clicking on a hashtag
-											setTimeout(() => {
-												handleSearch();
+											onClick={() => {
+												setSearchKeyword(cleanHashtag);
+												setSelectedHashtag(cleanHashtag);
+												// Auto-search when clicking on a hashtag
+												setTimeout(() => {
+													handleSearch();
 											}, 0);
 										}}
 									>
