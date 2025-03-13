@@ -14,7 +14,7 @@ const HomePage = () => {
     const [endDate, setEndDate] = useState("");
     const [selectedRange, setSelectedRange] = useState(null);
     const [activeSearch, setActiveSearch] = useState({
-        keywords: "",
+        keyword: "",
         startDate: "",
         endDate: "",
         isDateRangeActive: false
@@ -22,52 +22,40 @@ const HomePage = () => {
     const [hasActiveSearch, setHasActiveSearch] = useState(false);
 
     const handleAdvancedSearch = async () => {
+        if (!searchKeyword.trim() && !startDate && !endDate) { 
+            setIsSearching(false); 
+            return;
+        }
         setIsSearching(true);
-
         try {
-            // Build the query string with all search parameters
+            // Construire les paramètres de requête
             let queryParams = [];
-
-            // Add keyword search if available
             if (searchKeyword.trim()) {
-                queryParams.push(`keywords=${encodeURIComponent(searchKeyword.trim())}`);
+                queryParams.push(`keyword=${encodeURIComponent(searchKeyword.trim())}`);
             }
-
-            // Add date range if selected
             if (startDate) queryParams.push(`startDate=${startDate}`);
             if (endDate) queryParams.push(`endDate=${endDate}`);
-
-            // Add sorting parameters
             queryParams.push(`sortBy=createdAt`);
             queryParams.push(`sortOrder=-1`);
-
-            // Construct the full URL
             const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
-            const url = `http://localhost:3000/api/posts/search${queryString}`;
-
-            // Make the request
-            const response = await fetch(url);
+            const url = `http://localhost:3001/api/posts/search${queryString}`;
+            console.log("🔎 Requête envoyée :", url);
+            const response = await fetch(url, { method: "GET" });
             const data = await response.json();
-
-            if (response.ok) {
-                setSearchResults(data.posts);
-                console.log("Search results:", data.posts);
-                
-                // Set active search flag regardless of results length
-                setHasActiveSearch(true);
-                
-                // Update active search state to track current search parameters
-                setActiveSearch({
-                    keywords: searchKeyword.trim(),
-                    startDate: startDate,
-                    endDate: endDate,
-                    isDateRangeActive: !!(startDate && endDate)
-                });
-            } else {
-                console.error("Error fetching search results:", data.error);
+            if (!response.ok) {
+                throw new Error(data.error || "Erreur inconnue lors de la recherche");
             }
+            setSearchResults(data.posts || []);
+            console.log("✅ Résultats de la recherche :", data.posts);
+            setHasActiveSearch(true);
+            setActiveSearch({
+                keyword: searchKeyword.trim(),
+                startDate: startDate,
+                endDate: endDate,
+                isDateRangeActive: !!(startDate && endDate)
+            });
         } catch (error) {
-            console.error("Error during search:", error);
+            console.error("❌ Erreur lors de la recherche :", error);
         } finally {
             setIsSearching(false);
         }
@@ -76,29 +64,23 @@ const HomePage = () => {
     const applyDateRange = () => {
         if (startDate && endDate) {
             setSelectedRange(`${startDate} to ${endDate}`);
-            setIsModalVisible(false); // Close the modal
-            handleAdvancedSearch(); // Trigger search with the date range
+            setIsModalVisible(false);
+            handleAdvancedSearch();
         }
     };
 
     const fetchHashtags = async () => {
         try {
-            const response = await fetch(
-                `http://localhost:3000/api/posts/search/hashtags/popular`
-            );
-
+            const response = await fetch(`http://localhost:3001/api/posts/search/hashtags/popular`);
             const data = await response.json();
             if (response.ok) {
                 setHashtags(data);
-                console.log("result hashtags", data);
+                console.log("✅ Hashtags populaires :", data);
             } else {
-                console.error(
-                    "Erreur lors de la récupération des hashtags:",
-                    data.error
-                );
+                console.error("❌ Erreur lors de la récupération des hashtags:", data.error);
             }
         } catch (error) {
-            console.error("Erreur lors de la récupération des hashtags:", error.message);
+            console.error("❌ Erreur lors de la récupération des hashtags:", error.message);
         }
     };
 
@@ -107,37 +89,23 @@ const HomePage = () => {
     }, []);
 
     const handleSearch = async () => {
-        if (!searchKeyword.trim()) {
-            setSearchResults([]);
-            setHasActiveSearch(false);
+        if (!searchKeyword.trim() && !activeSearch.isDateRangeActive) { 
+            setIsSearching(false); 
             return;
         }
-
+        
         setIsSearching(true);
-
-        try {   // Construisez les paramètres de requête
-            const queryParams = [`keywords=${encodeURIComponent(searchKeyword.trim())}`];
+        try {
+            const queryParams = [`keyword=${encodeURIComponent(searchKeyword.trim())}`];
             if (activeSearch.isDateRangeActive) {
                 if (startDate) queryParams.push(`startDate=${startDate}`);
                 if (endDate) queryParams.push(`endDate=${endDate}`);
             }
             const queryString = queryParams.join('&');
-
-            // Effectuez la requête avec le token dans les en-têtes
-            const response = await fetch(`http://localhost:3000/api/posts/search?${queryString}`);
-
-            // Vérifiez la réponse
-            // if (!response.ok) {
-            //     const errorData = await response.json(); // Lisez le corps de la réponse
-            //     console.error("Server error details:", errorData);
-            //     throw new Error(`Server responded with status: ${response.status}`);
-            // }
-
-            // const data = await response.json();
-            // setSearchResults(data.posts); // Assurez-vous que `data.posts` existe
-            // setHasActiveSearch(true);
-
-            // Mettez à jour l'état de la recherche
+            const response = await fetch(`http://localhost:3001/api/posts/search?${queryString}`);
+            const data = await response.json();
+            setSearchResults(data.posts || []);
+            setHasActiveSearch(true);
             setActiveSearch({
                 keywords: searchKeyword.trim(),
                 startDate: startDate,
@@ -145,33 +113,21 @@ const HomePage = () => {
                 isDateRangeActive: !!(startDate && endDate)
             });
         } catch (error) {
-            console.error("Error during search:", error);
-            // Affichez un message d'erreur à l'utilisateur si nécessaire
+            console.error("❌ Erreur lors de la recherche :", error);
         } finally {
             setIsSearching(false);
         }
     };
 
-    function showModal() {
-        setIsModalVisible(true);
-    }
-
-    const handleCancel = () => {
-        setIsModalVisible(false);
-    };
-
+    const showModal = () => setIsModalVisible(true);
+    const handleCancel = () => setIsModalVisible(false);
     const resetAllSearch = () => {
         setSearchResults([]);
         setSearchKeyword("");
         setStartDate("");
         setEndDate("");
         setSelectedRange(null);
-        setActiveSearch({
-            keywords: "",
-            startDate: "",
-            endDate: "",
-            isDateRangeActive: false
-        });
+        setActiveSearch({ keywords: "", startDate: "", endDate: "", isDateRangeActive: false });
         setHasActiveSearch(false);
         setSelectedHashtag(null);
     };
@@ -183,26 +139,20 @@ const HomePage = () => {
                 <div className="flex w-full border-b border-gray-700">
                     <div
                         className="flex justify-center flex-1 p-3 transition duration-300 cursor-pointer relative"
-                        onClick={() => {
-                            setFeedType("forYou");
-                            resetAllSearch();
-                        }}
+                        onClick={() => { setFeedType("forYou"); resetAllSearch(); }}
                     >
                         For you
                         {feedType === "forYou" && (
-                            <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf'}}></div>
+                            <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf' }}></div>
                         )}
                     </div>
                     <div
                         className="flex justify-center flex-1 p-3 transition duration-300 cursor-pointer relative"
-                        onClick={() => {
-                            setFeedType("following");
-                            resetAllSearch();
-                        }}
+                        onClick={() => { setFeedType("following"); resetAllSearch(); }}
                     >
                         Following
                         {feedType === "following" && (
-                            <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf'}}></div>
+                            <div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf' }}></div>
                         )}
                     </div>
                 </div>
@@ -215,13 +165,10 @@ const HomePage = () => {
                         className="flex-1 p-2 bg-transparent border border-gray-700 rounded-l-lg focus:outline-none focus:border-primary"
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        onKeyPress={(e) => {
-                            if (e.key === "Enter") handleSearch();
-                        }}
                     />
                     <button
                         className="p-2 bg-primary text-white rounded-r-lg hover:bg-primary-dark transition duration-300"
-                        style={{ backgroundColor: '#05afdf', borderColor: '#05afdf'}}
+                        style={{ backgroundColor: '#05afdf', borderColor: '#05afdf' }}
                         onClick={handleSearch}
                         disabled={isSearching}
                     >
@@ -229,7 +176,7 @@ const HomePage = () => {
                     </button>
                 </div>
 
-                {/* Advanced Search button */}
+                {/* Advanced Search Button */}
                 <div className="p-1 ml-4 flex items-center">
                     <button
                         onClick={showModal}
@@ -237,7 +184,6 @@ const HomePage = () => {
                     >
                         Advanced Search
                     </button>
-                    
                     {hasActiveSearch && (
                         <button
                             onClick={resetAllSearch}
@@ -247,6 +193,23 @@ const HomePage = () => {
                         </button>
                     )}
                 </div>
+
+                {/* Affichage des options de recherche avancée */}
+                {hasActiveSearch && (
+                    <div className="ml-5 mt-4 mb-2 text-gray-400 text-sm">
+                        {searchResults.length === 0 ? (
+                            <span className="text-yellow-500">No results found</span>
+                        ) : (
+                            <span>{searchResults.length} results found for "<strong>{searchKeyword}</strong>"</span>
+                        )}
+                        {<activeSearch className="keywordss"></activeSearch> && (
+                            <span className="ml-2 text-primary">
+                                (Keyword: "{activeSearch.keyword}")
+                            </span>
+                        )}
+                        {activeSearch.isDateRangeActive && <span> in advanced search</span>}
+                    </div>
+                )}
 
                 {/* MODAL */}
                 {isModalVisible && (
@@ -269,7 +232,7 @@ const HomePage = () => {
                                     className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                                     value={endDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    min={startDate} // Prevent selecting end date before start date
+                                    min={startDate}
                                 />
                             </div>
                             <div className="flex justify-between">
@@ -290,25 +253,7 @@ const HomePage = () => {
                         </div>
                     </div>
                 )}
-                
-                {/* Date Range Display */}
-                {selectedRange && (
-                    <div className="flex items-center ml-5 mt-2 mb-2 bg-gray-700 inline-block px-3 py-1 rounded-full">
-                        <span className="mr-2 text-sm">Date Range: {selectedRange}</span>
-                    </div>
-                )}
-                {/* Display search or result status */}
-                {hasActiveSearch && (
-                    <div className="ml-5 mt-4 mb-2 text-gray-400 text-sm">
-                        {searchResults.length === 0 ? (
-                            <span className="text-yellow-500">No results found</span>
-                        ) : (
-                            <span>{searchResults.length} results found</span>
-                        )}
-                        {activeSearch.keywords && <span> for "{activeSearch.keywords}"</span>}
-                        {activeSearch.isDateRangeActive && <span> in advanced search</span>}
-                    </div>
-                )}
+
                 {/* Hashtags populaires */}
                 <div className="mt-5">
                     <h3 className="text-gray-300 text-sm mb-2 ml-5">Hashtags populaires :</h3>
@@ -316,15 +261,14 @@ const HomePage = () => {
                         {hashtags.length > 0 ? (
                             hashtags.map((tag, index) => {
                                 const cleanHashtag = tag.hashtag.replace(/^#/, "");
-
                                 return (
                                     <span
                                         key={index}
                                         className={`ml-1 px-2 py-1 rounded-lg cursor-pointer transition duration-300 
-                                        ${selectedHashtag === cleanHashtag
-                                            ? "bg-blue-500 text-white"
-                                            : "bg-gray-700 text-white hover:bg-primary"
-                                        }`}
+                                            ${selectedHashtag === cleanHashtag
+                                                ? "bg-blue-500 text-white"
+                                                : "bg-gray-700 text-white hover:bg-primary"
+                                            }`}
                                         onClick={() => {
                                             setSearchKeyword(cleanHashtag);
                                             setSelectedHashtag(cleanHashtag);
@@ -347,7 +291,7 @@ const HomePage = () => {
                 {/* CREATE POST INPUT */}
                 <CreatePost />
 
-                {/* Affichage des résultats de recherche */}
+                {/* Affichage des posts */}
                 {hasActiveSearch ? (
                     <div className="search-results">
                         {isSearching ? (
@@ -362,11 +306,8 @@ const HomePage = () => {
                         )}
                     </div>
                 ) : (
-                    <p className="p-4 text-gray-500"></p>
+                    <Posts feedType={feedType} />
                 )}
-
-                {/* POSTS */}
-                {!hasActiveSearch && <Posts feedType={feedType} />}
             </div>
         </>
     );

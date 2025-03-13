@@ -409,7 +409,36 @@ export const getPostById = async (req, res) => {
 	}
   };
 
+  export const searchByKeyword = async (req, res) => {
+    try {
+        const { keyword } = req.query;
 
+        console.log("🔍 Requête reçue avec keyword :", keyword);
+
+        if (!keyword) {
+            console.log("⚠ Erreur : aucun mot-clé fourni");
+            return res.status(400).json({ error: "Keyword parameter is required" });
+        }
+
+        // Fonction pour échapper les caractères spéciaux dans une regex
+        const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+
+        const searchQuery = escapeRegex(keyword); // Échapper les caractères spéciaux
+
+        const posts = await Post.find({
+            text: { $regex: searchQuery, $options: 'i' } 
+        })
+        .populate({ path: "user", select: "-password" })
+        .populate({ path: "comments.user", select: "-password" });
+
+        console.log("✅ Nombre de posts trouvés :", posts.length);
+
+        res.status(200).json({ posts });
+    } catch (error) {
+        console.error("❌ Erreur dans searchByKeyword :", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
 
 export const getBookmarkedPosts = async (req, res) => {
 	try {
