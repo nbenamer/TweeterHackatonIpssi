@@ -1,0 +1,4 @@
+deepface
+flask
+flask_cors
+tf-keras

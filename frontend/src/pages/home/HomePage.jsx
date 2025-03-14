@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Posts from "../../components/common/Posts";
 import CreatePost from "./CreatePost";
+import WebcamEmotionDetector from "../../components/WebcamEmotionDetector";
 
 const HomePage = () => {
 	const [feedType, setFeedType] = useState("forYou");
@@ -180,6 +181,8 @@ const HomePage = () => {
 		<>
 			<div className="flex-[4_4_0] mr-auto border-r border-gray-700 min-w-screen">
 				{/* Header */}
+					{/* Webcam Emotion Detector */}
+					{/* <WebcamEmotionDetector /> */}
 				<div className="flex w-full border-b border-gray-700">
 					<div
 						className="flex justify-center flex-1 p-3 transition duration-300 cursor-pointer relative"

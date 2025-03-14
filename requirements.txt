@@ -1,0 +1,29 @@
+# Bibliothèques de base Flask
+flask==2.3.2
+flask-cors==4.0.0
+werkzeug==2.3.6
+
+# Traitement d'images et vision par ordinateur
+opencv-python==4.7.0.72
+numpy==1.24.3
+Pillow==9.5.0
+
+# Détection d'émotion
+deepface==0.0.79
+
+# Autres dépendances utiles
+requests==2.31.0
+matplotlib==3.7.1
+
+# Machine Learning et Deep Learning
+tensorflow==2.12.0
+keras==2.12.0
+
+# Pour les annotations et le typage (optionnel)
+typing-extensions==4.6.3
+
+# Pour les tests (optionnel)
+pytest==7.3.1
+
+# Pour la gestion des environnements virtuels (optionnel)
+virtualenv==20.23.0
