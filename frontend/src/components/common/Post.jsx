@@ -4,10 +4,11 @@ import { FaRetweet } from "react-icons/fa"; // For filled repost icon
 import { FaRegHeart } from "react-icons/fa";
 import { FaRegBookmark, FaBookmark } from "react-icons/fa6";
 import { FaTrash } from "react-icons/fa";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
+import { Camera, Smile } from "lucide-react";
 
 import LoadingSpinner from "./LoadingSpinner";
 import { formatPostDate } from "../../utils/date";
@@ -20,10 +21,195 @@ const Post = ({ post }) => {
 	const isLiked = post.likes.includes(authUser._id);
 	const isBookmarked = post.bookmarks?.includes(authUser._id);
 	const isReposted = post.reposts?.includes(authUser._id);
+	const [isDetectingEmotion, setIsDetectingEmotion] = useState(false);
 
 	const isMyPost = authUser._id === post.user._id;
 
 	const formattedDate = formatPostDate(post.createdAt);
+
+	const [isWebcamActive, setIsWebcamActive] = useState(false);
+	const [detectedEmotion, setDetectedEmotion] = useState(post.detectedEmotion || null);
+	const videoRef = useRef(null);
+	const canvasRef = useRef(null);
+
+
+// Start webcam function
+// Start webcam function
+const startWebcam = async () => {
+	try {
+	  console.log("Starting webcam, video ref exists:", !!videoRef.current);
+	  
+	  // Check if media devices are supported
+	  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+		toast.error("Votre navigateur ne supporte pas l'accès à la webcam");
+		return;
+	  }
+  
+	  // IMPORTANT: Make sure video element exists
+	  if (!videoRef.current) {
+		console.error("Video reference is null");
+		toast.error("Référence vidéo non initialisée");
+		return;
+	  }
+  
+	  const constraints = {
+		video: { 
+		  width: { ideal: 640 },
+		  height: { ideal: 480 },
+		  facingMode: "user"
+		}
+	  };
+  
+	  // Request webcam access
+	  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+	  
+	  // Set stream to video element
+	  videoRef.current.srcObject = stream;
+	  
+	  // Wait for video to be ready
+	  videoRef.current.onloadedmetadata = () => {
+		videoRef.current.play()
+		  .then(() => {
+			console.log("Video is now playing");
+			setIsWebcamActive(true);
+		  })
+		  .catch(err => {
+			console.error("Error playing video:", err);
+			toast.error("Erreur lors du démarrage de la vidéo");
+		  });
+	  };
+	} catch (error) {
+	  console.error("Erreur d'accès à la webcam:", error);
+	  
+	  // Custom error messages
+	  switch(error.name) {
+		case 'NotAllowedError':
+		  toast.error("Accès à la webcam refusé. Vérifiez vos paramètres.");
+		  break;
+		case 'NotFoundError':
+		  toast.error("Aucune webcam n'a été trouvée.");
+		  break;
+		case 'NotReadableError':
+		  toast.error("La webcam est déjà utilisée par une autre application.");
+		  break;
+		default:
+		  toast.error(`Impossible d'accéder à la webcam: ${error.message}`);
+	  }
+	}
+  };
+  
+
+// Modifiez votre fonction captureEmotion pour gérer le spinner
+const captureEmotion = async () => {
+  try {
+    if (!videoRef.current || !canvasRef.current) {
+      toast.error("Webcam ou canvas non disponible");
+      return;
+    }
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    // Wait for video to be ready
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      console.log("Video not ready, waiting...");
+      // Wait and try again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        toast.error("La vidéo n'est pas prête, veuillez réessayer");
+        return;
+      }
+    }
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    
+    console.log("Video dimensions:", canvas.width, "x", canvas.height);
+    
+    // Clear canvas and draw video frame
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    console.log("Canvas capture completed");
+    
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        toast.error("Échec de la capture d'image");
+        return;
+      }
+      
+      console.log("Blob created:", blob.size, "bytes");
+      // Stop webcam after successful detection
+      stopWebcam();
+      // Check blob size to ensure it's not empty
+      if (blob.size < 1000) {
+        toast.error("Image capturée trop petite, veuillez réessayer");
+        return;
+      }
+      
+      // Activez le spinner ici
+      setIsDetectingEmotion(true);
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('image', blob, 'captured_emotion.jpg');
+      formData.append('postId', post._id);
+      formData.append('timestamp', Date.now()); // Prevent caching
+      
+      try {
+        // Send to backend
+        const response = await fetch('/api/detection/detect-emotion', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Server error:", errorText);
+          throw new Error(`Server responded with ${response.status}`);
+        }
+        
+        // Process response
+        const data = await response.json();
+        if (data.success) {
+          setDetectedEmotion(data.emotion_fr);
+          toast.success(`Émotion détectée : ${data.emotion_fr}`);
+        } else {
+          toast.error("Détection d'émotion impossible");
+          console.error("Emotion detection failed:", data.message);
+        }
+        
+      } catch (error) {
+        console.error("Erreur de détection d'émotion:", error);
+        toast.error("Erreur lors de la détection d'émotion");
+      } finally {
+        // Désactivez le spinner une fois terminé
+        setIsDetectingEmotion(false);
+      }
+    }, 'image/jpeg', 0.9); // Quality 0.9
+    
+  } catch (error) {
+    console.error("Erreur générale lors de la capture:", error);
+    toast.error("Erreur lors de la capture");
+    setIsDetectingEmotion(false);
+  }
+};
+  
+  // Stop webcam function
+  const stopWebcam = () => {
+	if (videoRef.current && videoRef.current.srcObject) {
+	  const stream = videoRef.current.srcObject;
+	  const tracks = stream.getTracks();
+	  tracks.forEach(track => track.stop());
+	  videoRef.current.srcObject = null;
+	  setIsWebcamActive(false);
+	}
+  };
 
 	const { mutate: deletePost, isPending: isDeleting } = useMutation({
 		mutationFn: async () => {
@@ -345,6 +531,65 @@ const Post = ({ post }) => {
 									{post.likes.length}
 								</span>
 							</div>
+							<div className='flex gap-1 items-center'>
+      {!isWebcamActive ? (
+        <Camera 
+          onClick={startWebcam}
+          className='w-4 h-4 text-slate-500 hover:text-blue-500 cursor-pointer' 
+        />
+      ) : (
+        <>
+          <Smile 
+            onClick={captureEmotion}
+            className='w-4 h-4 text-green-500 cursor-pointer' 
+          />
+          <span 
+            onClick={stopWebcam}
+            className='ml-1 text-xs text-red-500 cursor-pointer'
+          >
+            ✕
+          </span>
+        </>
+      )}
+	   {isDetectingEmotion ? (
+  <div className="mt-2 p-2 rounded-lg inline-flex items-center">
+    <LoadingSpinner size="sm" />
+    <span className="ml-2 text-sm">Analyse en cours...</span>
+  </div>
+) : (
+	detectedEmotion && (
+		<div className="mt-2 p-2 rounded-lg inline-flex items-center">
+		  {detectedEmotion === "Colère" && (
+			<span className="text-xl" title="Colère">😡</span>
+		  )}
+		  {detectedEmotion === "Joie" && (
+			<span className="text-xl" title="Joie">😄</span>
+		  )}
+		  {detectedEmotion === "Tristesse" && (
+			<span className="text-xl" title="Tristesse">😢</span>
+		  )}
+		  {detectedEmotion === "Surprise" && (
+			<span className="text-xl" title="Surprise">😲</span>
+		  )}
+		  {detectedEmotion === "Peur" && (
+			<span className="text-xl" title="Peur">😨</span>
+		  )}
+		  {detectedEmotion === "Dégoût" && (
+			<span className="text-xl" title="Dégoût">🤢</span>
+		  )}
+		  {detectedEmotion === "Neutre" && (
+			<span className="text-xl" title="Neutre">😐</span>
+		  )}
+		  {!["Colère", "Joie", "Tristesse", "Surprise", "Peur", "Dégoût", "Neutre"].includes(detectedEmotion) && (
+			<span className="text-xl" title={detectedEmotion}>❓</span>
+		  )}
+		</div>
+	  )
+)}
+      
+      {/* Emoji for detected emotion */}
+     
+    </div>
 						</div>
 						<div className='flex w-1/3 justify-end gap-2 items-center'>
 							<div className='group cursor-pointer' onClick={handleBookmarkPost}>
@@ -359,6 +604,90 @@ const Post = ({ post }) => {
 						</div>
 					</div>
 				</div>
+				{/* Emotion Detection Section */}
+				<div className="mt-2">
+  {/* Always render the video element, but hide it when not active */}
+  <video 
+    ref={videoRef} 
+    autoPlay 
+    playsInline
+    muted
+    className={isWebcamActive ? "w-48 h-36 rounded-lg mb-2" : "hidden"}
+    style={{ transform: 'scaleX(-1)' }}
+  />
+  
+  {/* Canvas for capture - always hidden */}
+  <canvas 
+    ref={canvasRef} 
+    width={640} 
+    height={480} 
+    style={{ display: 'none' }} 
+  />
+
+  {/* {!isWebcamActive ? (
+    <Camera 
+    onClick={startWebcam}
+    className="w-5 h-5 text-slate-500 hover:text-blue-500 cursor-pointer" 
+  />
+  ) : (
+    <div className="flex flex-col items-center">
+      <div className="flex space-x-2">
+        <button 
+          onClick={captureEmotion}
+          className="bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition flex items-center"
+        >
+          <Smile className="mr-2" /> Capturer
+        </button>
+        <button 
+          onClick={stopWebcam}
+          className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition"
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  )} */}
+
+  {/* Emotion display */}
+ {/* Emotion display avec émojis */}
+ {/* {isDetectingEmotion ? (
+  <div className="mt-2 p-2 rounded-lg inline-flex items-center">
+    <LoadingSpinner size="sm" />
+    <span className="ml-2 text-sm">Analyse en cours...</span>
+  </div>
+) : (
+  detectedEmotion && (
+    <div className="mt-2 p-2 rounded-lg inline-flex items-center">
+      {detectedEmotion === "Colère" && (
+        <span className="text-xl" title="Colère">😡</span>
+      )}
+      {detectedEmotion === "Joie" && (
+        <span className="text-xl" title="Joie">😄</span>
+      )}
+      {detectedEmotion === "Tristesse" && (
+        <span className="text-xl" title="Tristesse">😢</span>
+      )}
+      {detectedEmotion === "Surprise" && (
+        <span className="text-xl" title="Surprise">😲</span>
+      )}
+      {detectedEmotion === "Peur" && (
+        <span className="text-xl" title="Peur">😨</span>
+      )}
+      {detectedEmotion === "Dégoût" && (
+        <span className="text-xl" title="Dégoût">🤢</span>
+      )}
+      {detectedEmotion === "Neutre" && (
+        <span className="text-xl" title="Neutre">😐</span>
+      )}
+      {!["Colère", "Joie", "Tristesse", "Surprise", "Peur", "Dégoût", "Neutre"].includes(detectedEmotion) && (
+        <span className="text-xl" title={detectedEmotion}>❓</span>
+      )}
+    </div>
+  )
+)} */}
+
+</div>
+
 			</div>
 		</>
 	);

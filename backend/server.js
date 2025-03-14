@@ -72,6 +72,7 @@ import connectMongoDB from './config/db.js';
 import cloudinary from 'cloudinary';
 import postRoutes from './routes/post.route.js';
 import notificationRoutes from './routes/notification.route.js';
+import detectionRoutes from './routes/detection.route.js';
 
 dotenv.config();
 
@@ -144,6 +145,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/detection", detectionRoutes);
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {

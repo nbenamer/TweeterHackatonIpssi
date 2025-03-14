@@ -13,6 +13,15 @@ const postSchema = new mongoose.Schema(
         img: {
             type: String,
         },
+        detectedEmotion: {
+            type: String,
+            enum: [
+                'Colère', 'Dégoût', 'Peur', 
+                'Joie', 'Tristesse', 'Surprise', 'Neutre',
+                null
+            ],
+            default: null
+        },
         likes: [
             {
                 type: mongoose.Schema.Types.ObjectId,

@@ -469,3 +469,54 @@ export const getBookmarkedPosts = async (req, res) => {
 	  res.status(500).json({ error: "Internal server error" });
 	}
   };
+
+
+  import axios from 'axios';
+
+  export const detectEmotion = async (req, res) => {
+      try {
+          const { image } = req.body;
+  
+          // Validate input
+          if (!image) {
+              return res.status(400).json({ error: "No image provided" });
+          }
+  
+          // Send image to Flask emotion detection microservice
+          const flaskResponse = await axios.post('http://localhost:5001/detect-emotion', {
+              image: image
+          }, {
+              headers: {
+                  'Content-Type': 'application/json'
+              }
+          });
+  
+          // Return the detected emotion
+          res.status(200).json({
+              emotion: flaskResponse.data.emotion
+          });
+  
+      } catch (error) {
+          console.error("Error in emotion detection:", error);
+          
+          // More detailed error handling
+          if (error.response) {
+              // The request was made and the server responded with a status code
+              // that falls out of the range of 2xx
+              return res.status(error.response.status).json({ 
+                  error: "Emotion detection service error",
+                  details: error.response.data 
+              });
+          } else if (error.request) {
+              // The request was made but no response was received
+              return res.status(500).json({ 
+                  error: "No response from emotion detection service" 
+              });
+          } else {
+              // Something happened in setting up the request
+              return res.status(500).json({ 
+                  error: "Error processing emotion detection request" 
+              });
+          }
+      }
+  };
