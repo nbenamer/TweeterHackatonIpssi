@@ -30,10 +30,37 @@ const Sidebar = () => {
   });
 
   const { data: authUser } = useQuery({ queryKey: ['authUser'] });
+  
+  // Ajout de la requête pour le compteur de notifications non lues
+  const { data: unreadCount } = useQuery({
+    queryKey: ['unreadCount'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/notifications/unread-count', {
+          credentials: 'include'
+        });
+        if (!res.ok) {
+          throw new Error('Failed to fetch unread count');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+        return { count: 0 };
+      }
+    },
+    // Actualiser toutes les minutes
+    refetchInterval: 60000,
+    enabled: !!authUser, // Activer seulement si l'utilisateur est connecté
+  });
 
   const menuItems = [
     { name: 'Home', path: '/', icon: <MdHomeFilled className='w-6 h-6 text-yellow-500' /> },
-    { name: 'Notifications', path: '/notifications', icon: <IoNotifications className='w-6 h-6 text-yellow-500' /> },
+    { 
+      name: 'Notifications', 
+      path: '/notifications', 
+      icon: <IoNotifications className='w-6 h-6 text-yellow-500' />,
+      badge: unreadCount?.count || 0
+    },
     { name: 'Bookmarks', path: '/bookmarks', icon: <FaBookmark className='w-6 h-6 text-yellow-500' /> },
     { name: 'Profile', path: `/profile/${authUser?.username}`, icon: <FaUser className='w-6 h-6 text-yellow-500' /> },
   ];
@@ -50,16 +77,28 @@ const Sidebar = () => {
               to={item.path}
               className='flex items-center gap-3 p-3 text-lg font-medium text-gray-100 rounded-lg transition duration-300 hover:bg-gray-500 hover:font-bold'
             >
-              {item.icon}
+              <div className="relative">
+                {item.icon}
+                {item.badge > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </span>
+                )}
+              </div>
               <span className='hidden md:block'>{item.name}</span>
+              {/* {item.name === 'Notifications' && item.badge > 0 && (
+                <span className='hidden md:flex bg-red-500 text-white text-xs rounded-full h-5 min-w-[20px] items-center justify-center px-1'>
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )} */}
             </Link>
           </li>
         ))}
       </ul>
       {authUser && (
         <div
-        style={{marginLeft:-10}}
-          className=' mt-auto mb-4 flex items-center gap-3 p-3 text-lg font-medium text-gray-100 rounded-lg transition duration-300 hover:bg-gray-500 cursor-pointer hover:font-bold'
+          style={{marginLeft:-10}}
+          className='mt-auto mb-4 flex items-center gap-3 p-3 text-lg font-medium text-gray-100 rounded-lg transition duration-300 hover:bg-gray-500 cursor-pointer hover:font-bold'
           onClick={logout}
         >
           <BiLogOut className='w-8 h-8 text-yellow-800' />

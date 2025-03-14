@@ -2,7 +2,7 @@ import Notification from "../models/Notification.js";
 import Post from '../models/Post.js'
 import User from '../models/User.js'
 import { v2 as cloudinary } from "cloudinary";
-
+import { io, userSockets } from '../server.js';
 
 export const repostPost = async (req, res) => {
     try {
@@ -33,13 +33,6 @@ export const repostPost = async (req, res) => {
                 $push: { reposts: userId },
             });
             
-            // Add debug log
-            console.log("Repost added", {
-                postUser: post.user.toString(),
-                repostingUser: userId.toString(),
-                isUserSame: post.user.toString() === userId.toString()
-            });
-            
             // Only create notification if the reposter is not the post owner
             if (post.user.toString() !== userId.toString()) {
                 const notification = new Notification({
@@ -49,9 +42,20 @@ export const repostPost = async (req, res) => {
                     post: postId
                 });
                 await notification.save();
-                console.log("Repost notification created", notification);
-            } else {
-                console.log("No notification created: user is reposting their own post");
+                
+                // Populate the notification to include sender details
+                const populatedNotification = await Notification.findById(notification._id)
+                    .populate({
+                        path: "from",
+                        select: "username profileImg"
+                    });
+                
+                // Send real-time notification if the user is online
+                const recipientSocketId = userSockets[post.user.toString()];
+                if (recipientSocketId) {
+                    io.to(recipientSocketId).emit('new-notification', populatedNotification);
+                    console.log(`Real-time notification sent to socket ${recipientSocketId}`);
+                }
             }
         }
 
@@ -64,6 +68,64 @@ export const repostPost = async (req, res) => {
     }
 };
 
+
+export const bookmarkPost = async (req, res) => {
+    try {
+        const { id: postId } = req.params;
+        const userId = req.user._id;
+
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        const isBookmarked = post.bookmarks.includes(userId);
+
+        if (isBookmarked) {
+            // Si déjà enregistré, on le retire des bookmarks
+            await Post.findByIdAndUpdate(postId, {
+                $pull: { bookmarks: userId },
+            });
+        } else {
+            // Sinon on l'ajoute aux bookmarks
+            await Post.findByIdAndUpdate(postId, {
+                $push: { bookmarks: userId },
+            });
+            
+            // Only create notification if bookmarker is not the post owner
+            if (post.user.toString() !== userId.toString()) {
+                const notification = new Notification({
+                    type: "bookmarked",
+                    from: userId,
+                    to: post.user,
+                    post: postId
+                });
+                await notification.save();
+                
+                // Populate the notification to include sender details
+                const populatedNotification = await Notification.findById(notification._id)
+                    .populate({
+                        path: "from",
+                        select: "username profileImg"
+                    });
+                
+                // Send real-time notification
+                const recipientSocketId = userSockets[post.user.toString()];
+                if (recipientSocketId) {
+                    io.to(recipientSocketId).emit('new-notification', populatedNotification);
+                }
+            }
+        }
+
+        // Récupérer la liste mise à jour des bookmarks
+        const updatedPost = await Post.findById(postId);
+        res.status(200).json(updatedPost.bookmarks);
+    } catch (error) {
+        console.log("Error in bookmarkPost controller: ", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 
 export const createPost = async (req, res) => {
 	try {
@@ -169,60 +231,7 @@ export const getRepostedPosts = async (req, res) => {
 };
 
 
-export const bookmarkPost = async (req, res) => {
-    try {
-        const { id: postId } = req.params;
-        const userId = req.user._id;
 
-        const post = await Post.findById(postId);
-
-        if (!post) {
-            return res.status(404).json({ error: "Post not found" });
-        }
-
-        const isBookmarked = post.bookmarks.includes(userId);
-
-        if (isBookmarked) {
-            // Si déjà enregistré, on le retire des bookmarks
-            await Post.findByIdAndUpdate(postId, {
-                $pull: { bookmarks: userId },
-            });
-        } else {
-            // Sinon on l'ajoute aux bookmarks
-            await Post.findByIdAndUpdate(postId, {
-                $push: { bookmarks: userId },
-            });
-            
-            // Add debug log
-            console.log("Bookmark added", {
-                postUser: post.user.toString(),
-                bookmarkingUser: userId.toString(),
-                isUserSame: post.user.toString() === userId.toString()
-            });
-            
-            // Only create notification if bookmarker is not the post owner
-            if (post.user.toString() !== userId.toString()) {
-                const notification = new Notification({
-                    type: "bookmarked",
-                    from: userId,
-                    to: post.user,
-                    post: postId  // Include the post reference
-                });
-                await notification.save();
-                console.log("Bookmark notification created", notification);
-            } else {
-                console.log("No notification created: user is bookmarking their own post");
-            }
-        }
-
-        // Récupérer la liste mise à jour des bookmarks
-        const updatedPost = await Post.findById(postId);
-        res.status(200).json(updatedPost.bookmarks);
-    } catch (error) {
-        console.log("Error in bookmarkPost controller: ", error);
-        res.status(500).json({ error: error.message });
-    }
-};
 export const commentOnPost = async (req, res) => {
     try {
         const { text } = req.body;
@@ -249,9 +258,22 @@ export const commentOnPost = async (req, res) => {
                 type: "comment",
                 from: userId,
                 to: post.user,
-                post: postId  // Include the post reference
+                post: postId
             });
             await notification.save();
+            
+            // Populate the notification for real-time delivery
+            const populatedNotification = await Notification.findById(notification._id)
+                .populate({
+                    path: "from",
+                    select: "username profileImg"
+                });
+            
+            // Send real-time notification
+            const recipientSocketId = userSockets[post.user.toString()];
+            if (recipientSocketId) {
+                io.to(recipientSocketId).emit('new-notification', populatedNotification);
+            }
         }
 
         res.status(200).json(post);
@@ -260,50 +282,64 @@ export const commentOnPost = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
+
 export const likeUnlikePost = async (req, res) => {
-	try {
-		const userId = req.user._id;
-		const { id: postId } = req.params;
+    try {
+        const userId = req.user._id;
+        const { id: postId } = req.params;
 
-		const post = await Post.findById(postId);
+        const post = await Post.findById(postId);
 
-		if (!post) {
-			return res.status(404).json({ error: "Post not found" });
-		}
+        if (!post) {
+            return res.status(404).json({ error: "Post not found" });
+        }
 
-		const userLikedPost = post.likes.includes(userId);
+        const userLikedPost = post.likes.includes(userId);
 
-		if (userLikedPost) {
-			// Unlike post
-			await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
-			await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
+        if (userLikedPost) {
+            // Unlike post
+            await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+            await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
 
-			const updatedLikes = post.likes.filter((id) => id.toString() !== userId.toString());
-			res.status(200).json(updatedLikes);
-		} else {
-			// Like post
-			post.likes.push(userId);
-			await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
-			await post.save();
+            const updatedLikes = post.likes.filter((id) => id.toString() !== userId.toString());
+            res.status(200).json(updatedLikes);
+        } else {
+            // Like post
+            post.likes.push(userId);
+            await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
+            await post.save();
 
-			// Vérifier si l'utilisateur n'est pas le propriétaire du post avant de créer une notification
-			if (userId.toString() !== post.user.toString()) {
-				const notification = new Notification({
-					from: userId,
-					to: post.user,
-					type: "like",
-					post: postId
-				});
-				await notification.save();
-			}
+            // Vérifier si l'utilisateur n'est pas le propriétaire du post avant de créer une notification
+            if (userId.toString() !== post.user.toString()) {
+                const notification = new Notification({
+                    from: userId,
+                    to: post.user,
+                    type: "like",
+                    post: postId
+                });
+                await notification.save();
+                
+                // Populate notification for real-time delivery
+                const populatedNotification = await Notification.findById(notification._id)
+                    .populate({
+                        path: "from",
+                        select: "username profileImg"
+                    });
+                
+                // Send real-time notification
+                const recipientSocketId = userSockets[post.user.toString()];
+                if (recipientSocketId) {
+                    io.to(recipientSocketId).emit('new-notification', populatedNotification);
+                }
+            }
 
-			const updatedLikes = post.likes;
-			res.status(200).json(updatedLikes);
-		}
-	} catch (error) {
-		console.log("Error in likeUnlikePost controller: ", error);
-		res.status(500).json({ error: "Internal server error" });
-	}
+            const updatedLikes = post.likes;
+            res.status(200).json(updatedLikes);
+        }
+    } catch (error) {
+        console.log("Error in likeUnlikePost controller: ", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
 };
 
 

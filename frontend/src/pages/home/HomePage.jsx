@@ -23,55 +23,49 @@ const HomePage = () => {
 
 	const handleAdvancedSearch = async () => {
 		setIsSearching(true);
-
+	
 		try {
-			// Build the query string with all search parameters
 			let queryParams = [];
-
-			// Add keyword search if available
+	
 			if (searchKeyword.trim()) {
-				queryParams.push(`keywords=${encodeURIComponent(searchKeyword.trim())}`);
+				queryParams.push(`keyword=${encodeURIComponent(searchKeyword.trim())}`);
 			}
-
-			// Add date range if selected
+	
 			if (startDate) queryParams.push(`startDate=${startDate}`);
 			if (endDate) queryParams.push(`endDate=${endDate}`);
-
-			// Add sorting parameters
+	
 			queryParams.push(`sortBy=createdAt`);
 			queryParams.push(`sortOrder=-1`);
-
-			// Construct the full URL
+	
 			const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+			
 			const url = `http://localhost:5000/api/posts/search${queryString}`;
-
-			// Make the request
-			const response = await fetch(url);
-			const data = await response.json();
-
-			if (response.ok) {
-				setSearchResults(data.posts);
-				console.log("Search results:", data.posts);
-				
-				// Set active search flag regardless of results length
-				setHasActiveSearch(true);
-				
-				// Update active search state to track current search parameters
-				setActiveSearch({
-					keywords: searchKeyword.trim(),
-					startDate: startDate,
-					endDate: endDate,
-					isDateRangeActive: !!(startDate && endDate)
-				});
-			} else {
-				console.error("Error fetching search results:", data.error);
+			const response = await fetch(url, {
+				credentials: 'include' // Include cookies
+			});
+	
+			if (!response.ok) {
+				throw new Error(`Server responded with status: ${response.status}`);
 			}
+			
+			const data = await response.json();
+			setSearchResults(data.posts);
+			
+			setHasActiveSearch(true);
+			
+			setActiveSearch({
+				keywords: searchKeyword.trim(),
+				startDate: startDate,
+				endDate: endDate,
+				isDateRangeActive: !!(startDate && endDate)
+			});
 		} catch (error) {
 			console.error("Error during search:", error);
 		} finally {
 			setIsSearching(false);
 		}
 	};
+	
 
 	const applyDateRange = () => {
 		if (startDate && endDate) {
@@ -86,7 +80,9 @@ const HomePage = () => {
 	const fetchHashtags = async () => {
 		try {
 			const response = await fetch(
-				`http://localhost:5000/api/posts/search/hashtags/popular`
+				`http://localhost:5000/api/posts/search/hashtags/popular`,{
+					credentials: 'include'
+				}
 			);
 			const data = await response.json();
 			if (response.ok) {
@@ -118,19 +114,23 @@ const HomePage = () => {
 		setIsSearching(true);
 	
 		try {
-			// Use 'keyword' instead of 'keywords' to match backend
 			const queryParams = [`keyword=${encodeURIComponent(searchKeyword.trim())}`];
 			
-			// Add other parameters as needed
 			if (activeSearch.isDateRangeActive) {
 				if (startDate) queryParams.push(`startDate=${startDate}`);
 				if (endDate) queryParams.push(`endDate=${endDate}`);
 			}
 			
 			const queryString = queryParams.join('&');
-			const response = await fetch(`http://localhost:3000/api/posts/search?${queryString}`);
 			
-			// Check if response is OK before processing
+			// Get the authentication token from localStorage
+			const token = localStorage.getItem('jwt');
+			
+			// Include the token in the request headers
+			const response = await fetch(`http://localhost:5000/api/posts/search-by-keyword?${queryString}`, {
+				credentials: 'include' 
+			});
+			
 			if (!response.ok) {
 				throw new Error(`Server responded with status: ${response.status}`);
 			}
@@ -139,7 +139,6 @@ const HomePage = () => {
 			setSearchResults(data.posts);
 			setHasActiveSearch(true);
 			
-			// Update active search state
 			setActiveSearch({
 				keywords: searchKeyword.trim(),
 				startDate: startDate,
@@ -148,7 +147,6 @@ const HomePage = () => {
 			});
 		} catch (error) {
 			console.error("Error during search:", error);
-			// Consider showing an error message to the user
 		} finally {
 			setIsSearching(false);
 		}
@@ -190,12 +188,12 @@ const HomePage = () => {
 							resetAllSearch();
 						}} 
 					>
-						For you
+						Feeds
 						{feedType === "forYou" && (
 							<div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf'}}></div>
 						)}
 					</div>
-					<div
+					{/* <div
 						className="flex justify-center flex-1 p-3 transition duration-300 cursor-pointer relative"
 						onClick={() => {
 							setFeedType("following");
@@ -206,7 +204,7 @@ const HomePage = () => {
 						{feedType === "following" && (
 							<div className="absolute bottom-0 w-10 h-1 rounded-full bg-primary" style={{ backgroundColor: '#05afdf', borderColor: '#05afdf'}}></div>
 						)}
-					</div>
+					</div> */}
 				</div>
 
 				{/* SEARCH BAR */}
@@ -314,38 +312,38 @@ const HomePage = () => {
 				)}
 				{/* Hashtags populaires */}
 				<div className="mt-5">
-					<h3 className="text-gray-300 text-sm mb-2 ml-5">Hashtags populaires :</h3>
-					<div className="flex flex-wrap gap-2">
-						{hashtags.length > 0 ? (
-							hashtags.map((tag, index) => {
-								const cleanHashtag = tag.hashtag.replace(/^#/, "");
+	<h3 className="text-gray-300 text-sm mb-2 ml-5">Hashtags populaires :</h3>
+	<div className="flex flex-wrap gap-2">
+		{hashtags.length > 0 ? (
+			hashtags.map((tag, index) => {
+				const cleanHashtag = tag.hashtag.replace(/^#/, "");
 
-								return (
-									<span
-										key={index}
-										className={`ml-1 px-2 py-1 rounded-lg cursor-pointer transition duration-300 
-                    						${selectedHashtag === cleanHashtag
-												? "bg-blue-500 text-white"
-												: "bg-gray-700 text-white hover:bg-primary"
-											}`}
-											onClick={() => {
-												setSearchKeyword(cleanHashtag);
-												setSelectedHashtag(cleanHashtag);
-												// Auto-search when clicking on a hashtag
-												setTimeout(() => {
-													handleSearch();
-											}, 0);
-										}}
-									>
-										{tag.hashtag} ({tag.count})
-									</span>
-								);
-							})
-						) : (
-							<p className="text-gray-500 ml-5">Aucun hashtag populaire</p>
-						)}
-					</div>
-				</div>
+				return (
+					<span
+						key={index}
+						className={`ml-1 px-2 py-1 rounded-lg cursor-pointer transition duration-300 
+							${selectedHashtag === cleanHashtag
+								? "bg-blue-500 text-white"
+								: "bg-gray-700 text-white hover:bg-primary"
+							}`}
+						onClick={() => {
+							setSearchKeyword(cleanHashtag); // Set the search keyword to the clicked hashtag
+							setSelectedHashtag(cleanHashtag); // Highlight the selected hashtag
+							
+							// Auto-search when clicking on a hashtag
+							handleSearch();
+						}}
+					>
+						{tag.hashtag} ({tag.count})
+					</span>
+				);
+			})
+		) : (
+			<p className="text-gray-500 ml-5">Aucun hashtag populaire</p>
+		)}
+	</div>
+</div>
+
 
 				
 
