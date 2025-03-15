@@ -107,18 +107,6 @@ L'API sera accessible à l'adresse : `http://127.0.0.1:5001`
   }
   ```
 
-## Développement
-
-### Entraînement du modèle
-
-[Instructions pour l'entraînement du modèle de détection d'émotion]
-
-### Test
-
-```bash
-# Exécuter les tests
-python -m pytest tests/
-```
 
 ## Déploiement
 
