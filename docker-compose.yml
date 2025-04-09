@@ -12,7 +12,7 @@ services:
       context: ./backend
     container_name: tweeter-backend
     environment:
-      - MONGO_URL=mongodb://mongo:27018/tweeterdb
+      - MONGO_URL=mongodb://mongo:27017/tweeterdb
     depends_on:
       - mongo
     networks:
