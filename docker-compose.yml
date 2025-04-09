@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo
+    container_name: tweeter-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+    container_name: tweeter-backend
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/tweeterdb
+    depends_on:
+      - mongo
+    networks:
+      - tweeter-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: tweeter-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - tweeter-net
+
+volumes:
+  mongo_data:
+
+networks:
+  tweeter-net:
